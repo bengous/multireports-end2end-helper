@@ -4,13 +4,30 @@ stages:
   - run_tests
   - make_reports
   - deploy
-  - notify
+
+# TODO: renable job later
+#- notify
 
 variables:
   ALLURE_RESULTS_DIR: target/allure-results
   ALLURE_REPORT_DIR: target/site/allure-maven-plugin
-  URL_GITLAB: TODO_DEFINE
+  URL_GITLAB: https://gitlab.com/
   BACKUP_HISTORY_DIR: backup/history
+  API_URL:
+    value: ""
+    description: |
+      L'URL de l'environnement à tester. Par exemple l'environnement de qualif,
+      ou un environnement Openshift d'une issue en cours...
+      Si cette variable n'est pas définie, alors un fallback vers l'environnement "master" sera utilisé.
+  TARGET_API:
+    value: "test1"
+    description: L'API à tester.
+    options:
+      - "test1"
+      - "test2"
+  REPORT_DIR: "public/${CI_COMMIT_REF_NAME}/${CI_PIPELINE_ID}"
+  INDEX_FILE: "public/index.html"
+
 
 backup_history:
   stage: prepare
@@ -29,7 +46,7 @@ tests:
   script:
     - |
       mvn clean test -Dapi.url=${API_URL} \
-                     -Dtarget.suite.xml.file=src/test/resources/testng/TODO_DEFINE
+                     -Dtarget.suite.xml.file=src/test/resources/testng/testng-jsonapi.xml
     - |
       if [ -d "$BACKUP_HISTORY_DIR" ] && [ "$(ls -A $BACKUP_HISTORY_DIR)" ]; then
         mkdir -p $ALLURE_RESULTS_DIR/history
@@ -60,18 +77,22 @@ generate_allure_report:
 pages:
   stage: deploy
   script:
-    - mkdir -p public
-    - mv $ALLURE_REPORT_DIR/* public
+    - mkdir -p ${REPORT_DIR}
+    - mv $ALLURE_REPORT_DIR/* ${REPORT_DIR}
+    - cp -r public previous_public || true
+    - ./scripts/generate_index.sh
   artifacts:
     paths:
       - public
+  only:
+    - branches
 
-publish_email_report:
-  stage: notify
-  script:
-    - apt-get update && apt-get install -y curl jq
-    - REPORT_CONTENT=$(jq -sRr @json < mail_template/template.html)
-    - |
-      echo "{\"report\": $REPORT_CONTENT}" > payload.json
-    - |
-      curl -H 'Content-Type: application/json' -d @payload.json $WEBHOOK_TEAMS_REPORTING
+#publish_email_report:
+#  stage: notify
+#  script:
+#    - apt-get update && apt-get install -y curl jq
+#    - REPORT_CONTENT=$(jq -sRr @json < mail_template/template.html)
+#    - |
+#      echo "{\"report\": $REPORT_CONTENT}" > payload.json
+#    - |
+#      curl -H 'Content-Type: application/json' -d @payload.json $WEBHOOK_TEAMS_REPORTING
