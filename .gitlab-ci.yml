@@ -1,0 +1,77 @@
+image: maven:3.9.8-eclipse-temurin-21
+stages:
+  - prepare
+  - run_tests
+  - make_reports
+  - deploy
+  - notify
+
+variables:
+  ALLURE_RESULTS_DIR: target/allure-results
+  ALLURE_REPORT_DIR: target/site/allure-maven-plugin
+  URL_GITLAB: TODO_DEFINE
+  BACKUP_HISTORY_DIR: backup/history
+
+backup_history:
+  stage: prepare
+  script:
+    - apt-get update && apt-get install -y unzip
+    - chmod +x ./scripts/backup_allure_history.sh
+    - ./scripts/backup_allure_history.sh
+  artifacts:
+    paths:
+      - $BACKUP_HISTORY_DIR
+    expire_in: 1 week
+
+#TODO: variabiliser target.suite.xml.file pour obliger le choix entre telle ou telle API. Et mettre en place un fallback
+tests:
+  stage: run_tests
+  script:
+    - |
+      mvn clean test -Dapi.url=${API_URL} \
+                     -Dtarget.suite.xml.file=src/test/resources/testng/TODO_DEFINE
+    - |
+      if [ -d "$BACKUP_HISTORY_DIR" ] && [ "$(ls -A $BACKUP_HISTORY_DIR)" ]; then
+        mkdir -p $ALLURE_RESULTS_DIR/history
+        cp -rv $BACKUP_HISTORY_DIR/* $ALLURE_RESULTS_DIR/history/
+      else
+        echo "Aucun historique trouvé"
+      fi
+  # autoriser les erreurs (fail gracefully) pour les capturer dans le rapport Allure
+  allow_failure: true
+  artifacts:
+    when: always
+    paths:
+      - $ALLURE_RESULTS_DIR/*
+    expire_in: 1 week
+
+generate_allure_report:
+  stage: make_reports
+  script:
+    - mvn allure:report
+  artifacts:
+    when: always
+    paths:
+      - $ALLURE_RESULTS_DIR/*
+      - $ALLURE_REPORT_DIR/*
+    expire_in: 1 week
+
+
+pages:
+  stage: deploy
+  script:
+    - mkdir -p public
+    - mv $ALLURE_REPORT_DIR/* public
+  artifacts:
+    paths:
+      - public
+
+publish_email_report:
+  stage: notify
+  script:
+    - apt-get update && apt-get install -y curl jq
+    - REPORT_CONTENT=$(jq -sRr @json < mail_template/template.html)
+    - |
+      echo "{\"report\": $REPORT_CONTENT}" > payload.json
+    - |
+      curl -H 'Content-Type: application/json' -d @payload.json $WEBHOOK_TEAMS_REPORTING

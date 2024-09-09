@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36}(%L) - %msg%n"/>
+        </Console>
+        <Routing name="RoutingAppender">
+            <Routes pattern="$${ctx:testLogFilename}">
+                <Route>
+                    <File name="File-${ctx:testLogFilename}" fileName="target/logs/${ctx:testLogFilename}.log">
+                        <PatternLayout>
+                            <pattern>%d{yyyy-MM-dd HH:mm:ss} - %m%n</pattern>
+                        </PatternLayout>
+                    </File>
+                </Route>
+            </Routes>
+        </Routing>
+    </Appenders>
+    <Loggers>
+        <Root level="ALL">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="RoutingAppender"/>
+        </Root>
+    </Loggers>
+</Configuration>
