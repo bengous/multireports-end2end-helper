@@ -1,0 +1,37 @@
+target/
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### IntelliJ IDEA ###
+.idea/modules.xml
+.idea/jarRepositories.xml
+.idea/compiler.xml
+.idea/libraries/
+*.iws
+*.iml
+*.ipr
+
+### Extension ###
+*.class
+*.jar
+*.log
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.rar
+*.exe
+*.tar.gz
+*.html
+*.tmp
+*.bak
+*.swp
+/bin/
+
+/.allure/
+test-output/*
+mappings/
+dev/
+backup/
+run.ps1
