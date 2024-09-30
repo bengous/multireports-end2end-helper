@@ -28,6 +28,7 @@ variables:
       - "test2"
   REPORT_DIR: "public/${CI_COMMIT_REF_NAME}/${CI_PIPELINE_ID}"
   INDEX_FILE: "public/index.html"
+  REPORTS_BASE_DIR: allure-reports
 
 cache:
   paths:
@@ -59,6 +60,7 @@ backup_history:
     - apt-get update && apt-get install -y unzip
     - chmod +x ./scripts/backup_allure_history.sh
     - ./scripts/backup_allure_history.sh
+    - mkdir -p $REPORTS_BASE_DIR
   artifacts:
     paths:
       - $BACKUP_HISTORY_DIR
@@ -90,27 +92,110 @@ generate_allure_report:
   stage: make_reports
   script:
     - mvn allure:report
+    - |
+      if [ ! -d "$ALLURE_REPORT_DIR" ]; then
+        echo "Allure report directory not found. Creating a dummy report."
+        mkdir -p $ALLURE_REPORT_DIR
+        echo "<html><body><h1>Allure Report</h1><p>Report generation failed. Please check the pipeline logs.</p></body></html>" > $ALLURE_REPORT_DIR/index.html
+      fi
   artifacts:
     when: always
     paths:
-      - $ALLURE_RESULTS_DIR/*
-      - $ALLURE_REPORT_DIR/*
+      - $ALLURE_REPORT_DIR
     expire_in: 1 week
-
 
 pages:
   stage: deploy
   script:
-    - mkdir -p ${REPORT_DIR}
-    - mv $ALLURE_REPORT_DIR/* ${REPORT_DIR}
-    - cp -r public previous_public || true
-    - chmod +x ./scripts/generate_index.sh
-    - ./scripts/generate_index.sh
+    - apk add --no-cache curl unzip jq
+    - |
+      mkdir -p public
+      if [ -d "$ALLURE_REPORT_DIR" ]; then
+        mv $ALLURE_REPORT_DIR/* public/
+      else
+        echo "<html><body><h1>Allure Report</h1><p>Report not available. Please check the pipeline logs.</p></body></html>" > public/index.html
+      fi
+      
+      # Generate index.html with links to current and previous reports
+      echo "<html><body><h1>Allure Reports</h1><ul>" > public/main_index.html
+      
+      # Add link to current report
+      echo "<li><a href='index.html'>Current Report (Pipeline ${CI_PIPELINE_ID})</a></li>" >> public/main_index.html
+      
+      # Fetch information about previous jobs and add links
+      JOBS=$(curl --header "PRIVATE-TOKEN: ${CI_JOB_TOKEN}" "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/jobs?scope[]=success&per_page=10")
+      echo $JOBS | jq -r '.[] | select(.name == "pages") | [.id, .pipeline.id] | @tsv' | while read job_id pipeline_id; do
+        if [ "$pipeline_id" != "$CI_PIPELINE_ID" ]; then
+          echo "<li><a href='${CI_PROJECT_URL}/-/jobs/${job_id}/artifacts/public/index.html'>Pipeline ${pipeline_id}</a></li>" >> public/main_index.html
+        fi
+      done
+      
+      echo "</ul></body></html>" >> public/main_index.html
+      mv public/main_index.html public/index.html
   artifacts:
     paths:
       - public
-  only:
-    - branches
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# generate_allure_report:
+#   stage: make_reports
+#   script:
+#     - mvn allure:report
+#     - echo "Allure report generated."
+#     - |
+#       echo "View the Allure report here:"
+#       echo "${CI_JOB_URL}/artifacts/file/${ALLURE_REPORT_DIR}/index.html"
+#   artifacts:
+#     when: always
+#     paths:
+#       - $ALLURE_REPORT_DIR/**
+#     expire_in: 1 week
+#   allow_failure: true
+
+
+# pages:
+#   stage: deploy
+#   image: alpine:latest
+#   variables:
+#     GIT_STRATEGY: none  # To prevent cloning the repo, since we're using curl and unzip
+#   script:
+#     - apk add --no-cache curl unzip jq
+
+#     # Download and extract the previous 'public/' artifacts
+#     - |
+#       if curl --silent --fail --show-error --header "JOB-TOKEN: ${GITLAB_ACCESS_TOKEN}" \
+#         "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/jobs/artifacts/${CI_COMMIT_REF_NAME}/download?job=pages" \
+#         --output previous_artifacts.zip; then
+#         echo "Previous artifacts downloaded successfully."
+#         file previous_artifacts.zip
+#         head -n 20 previous_artifacts.zip
+#         unzip -o previous_artifacts.zip -d .
+#       else
+#         echo "No previous artifacts to download."
+#       fi
+
+#     # Add the new report
+#     - mkdir -p ${REPORT_DIR}
+#     - mv $ALLURE_REPORT_DIR/* ${REPORT_DIR}
+
+#     # Generate the index.html
+#     - chmod +x ./scripts/generate_index.sh
+#     - ./scripts/generate_index.sh
+
+#     # Add the new report
+#     - mkdir -p ${REPORT_DIR}
+#     - mv $ALLURE_REPORT_DIR/* ${REPORT_DIR}
+
+#     # Generate the index.html
+#     - chmod +x ./scripts/generate_index.sh
+#     - ./scripts/generate_index.sh
+#   artifacts:
+#     paths:
+#       - public
+#     expire_in: 1 week
+#   only:
+#     - branches
 
 #publish_email_report:
 #  stage: notify
