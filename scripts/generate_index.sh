@@ -2,8 +2,7 @@
 
 set -e
 
-# Find all report directories
-REPORTS=$(find public -type d -mindepth 2 -maxdepth 2)
+INDEX_FILE="public/index.html"
 
 # Start the HTML file
 cat <<EOF > ${INDEX_FILE}
@@ -17,11 +16,12 @@ cat <<EOF > ${INDEX_FILE}
   <ul>
 EOF
 
-# Add links to the reports
-for REPORT in ${REPORTS}; do
-  BRANCH=$(basename $(dirname ${REPORT}))
-  PIPELINE_ID=$(basename ${REPORT})
-  echo "    <li><a href=\"./${BRANCH}/${PIPELINE_ID}/\">Branch: ${BRANCH}, Pipeline: ${PIPELINE_ID}</a></li>" >> ${INDEX_FILE}
+# Find all report directories
+find public -mindepth 2 -type d -name "[0-9]*" | while read REPORT; do
+  RELATIVE_PATH=${REPORT#public/}
+  BRANCH=$(echo ${RELATIVE_PATH} | cut -d'/' -f1)
+  PIPELINE_ID=$(echo ${RELATIVE_PATH} | cut -d'/' -f2)
+  echo "    <li><a href=\"./${RELATIVE_PATH}/index.html\">Branch: ${BRANCH}, Pipeline: ${PIPELINE_ID}</a></li>" >> ${INDEX_FILE}
 done
 
 # End the HTML file
