@@ -1,5 +1,6 @@
 image: maven:3.9.8-eclipse-temurin-21
 stages:
+  - dockerize
   - prepare
   - run_tests
   - make_reports
@@ -28,6 +29,29 @@ variables:
   REPORT_DIR: "public/${CI_COMMIT_REF_NAME}/${CI_PIPELINE_ID}"
   INDEX_FILE: "public/index.html"
 
+cache:
+  paths:
+    - .m2/repository
+
+# Docker image caching -> https://gitlab.com/augustin_bengolea/maven-e2e-archetype/container_registry
+# https://docs.gitlab.com/ee/ci/docker/docker_layer_caching.html
+prepare:
+  stage: dockerize
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $UPDATE_MAVEN_IMAGE
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker pull maven:3.9.8-eclipse-temurin-21
+    - docker tag maven:3.9.8-eclipse-temurin-21 $CI_REGISTRY_IMAGE/maven:3.9.8-eclipse-temurin-21
+    - docker push $CI_REGISTRY_IMAGE/maven:3.9.8-eclipse-temurin-21
+
+# TODO: maven package caching -> https://gitlab.com/augustin_bengolea/maven-e2e-archetype/-/packages
+#   find the docs and the way of doing that
 
 backup_history:
   stage: prepare
