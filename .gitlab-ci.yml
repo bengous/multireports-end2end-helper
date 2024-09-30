@@ -80,6 +80,7 @@ pages:
     - mkdir -p ${REPORT_DIR}
     - mv $ALLURE_REPORT_DIR/* ${REPORT_DIR}
     - cp -r public previous_public || true
+    - chmod +x ./scripts/generate_index.sh
     - ./scripts/generate_index.sh
   artifacts:
     paths:
