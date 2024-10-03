@@ -107,20 +107,13 @@ pages:
     - git config --global user.name "GitLab CI"
     - git config --global user.email "ci@example.com"
 
-    # Remove any existing public directory to avoid conflicts
     - rm -rf public
 
-    # Clone the pages branch using the PAT
-    - git clone --depth 1 --branch pages https://oauth2:${PAT_CI_CUSTOM_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git public || mkdir public
-
-    # Clone the pages branch into public directory or create it if it doesn't exist
     - git clone --depth 1 --branch pages https://gitlab-ci-token:${PAT_CI_CUSTOM_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git public || mkdir public
 
-    # Copy the new report into a directory named after the pipeline ID
     - mkdir -p public/$CI_PIPELINE_ID
     - cp -r $ALLURE_REPORT_DIR/* public/$CI_PIPELINE_ID
 
-    # Update the index.html file
     - |
       echo "<html><body><h1>Allure Reports Index</h1><ul>" > public/index.html
       for dir in $(ls public); do
@@ -130,7 +123,6 @@ pages:
       done
       echo "</ul></body></html>" >> public/index.html
 
-    # Commit and push the changes to the pages branch
     - cd public
     - git add .
     - git commit -m "Add report for pipeline $CI_PIPELINE_ID [skip ci]" || echo "No changes to commit"
