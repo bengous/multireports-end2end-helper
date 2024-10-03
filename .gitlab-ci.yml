@@ -107,36 +107,37 @@ generate_allure_report:
 pages:
   stage: deploy
   script:
-    - apk add --no-cache curl unzip jq
+    - git config --global user.name "GitLab CI"
+    - git config --global user.email "ci@example.com"
+
+    # Clone the pages branch into public directory or create it if it doesn't exist
+    - git clone --depth 1 --branch pages https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git public || mkdir public
+
+    # Copy the new report into a directory named after the pipeline ID
+    - mkdir -p public/$CI_PIPELINE_ID
+    - cp -r $ALLURE_REPORT_DIR/* public/$CI_PIPELINE_ID
+
+    # Update the index.html file
     - |
-      mkdir -p public
-      if [ -d "$ALLURE_REPORT_DIR" ]; then
-        mv $ALLURE_REPORT_DIR/* public/
-      else
-        echo "<html><body><h1>Allure Report</h1><p>Report not available. Please check the pipeline logs.</p></body></html>" > public/index.html
-      fi
-      
-      # Generate index.html with links to current and previous reports
-      echo "<html><body><h1>Allure Reports</h1><ul>" > public/main_index.html
-      
-      # Add link to current report
-      echo "<li><a href='index.html'>Current Report (Pipeline ${CI_PIPELINE_ID})</a></li>" >> public/main_index.html
-      
-      # Fetch information about previous jobs and add links
-      JOBS=$(curl --header "PRIVATE-TOKEN: ${CI_JOB_TOKEN}" "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/jobs?scope[]=success&per_page=10")
-      echo $JOBS | jq -r '.[] | select(.name == "pages") | [.id, .pipeline.id] | @tsv' | while read job_id pipeline_id; do
-        if [ "$pipeline_id" != "$CI_PIPELINE_ID" ]; then
-          echo "<li><a href='${CI_PROJECT_URL}/-/jobs/${job_id}/artifacts/public/index.html'>Pipeline ${pipeline_id}</a></li>" >> public/main_index.html
+      echo "<html><body><h1>Allure Reports Index</h1><ul>" > public/index.html
+      for dir in $(ls public); do
+        if [ -d "public/$dir" ] && [ "$dir" != "index.html" ]; then
+          echo "<li><a href='/$dir/index.html'>Report for Pipeline $dir</a></li>" >> public/index.html
         fi
       done
-      
-      echo "</ul></body></html>" >> public/main_index.html
-      mv public/main_index.html public/index.html
+      echo "</ul></body></html>" >> public/index.html
+
+    # Commit and push the changes to the pages branch
+    - cd public
+    - git add .
+    - git commit -m "Add report for pipeline $CI_PIPELINE_ID [skip ci]"
+    - git push origin pages
   artifacts:
     paths:
       - public
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  only:
+    - main  # or the branches you want to deploy from
+
 
 # generate_allure_report:
 #   stage: make_reports
