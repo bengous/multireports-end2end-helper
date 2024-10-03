@@ -6,9 +6,6 @@ stages:
   - make_reports
   - deploy
 
-# TODO: renable job later
-#- notify
-
 variables:
   ALLURE_RESULTS_DIR: target/allure-results
   ALLURE_REPORT_DIR: target/site/allure-maven-plugin
@@ -135,75 +132,4 @@ pages:
   artifacts:
     paths:
       - public
-  only:
-    - main  # or the branches you want to deploy from
 
-
-# generate_allure_report:
-#   stage: make_reports
-#   script:
-#     - mvn allure:report
-#     - echo "Allure report generated."
-#     - |
-#       echo "View the Allure report here:"
-#       echo "${CI_JOB_URL}/artifacts/file/${ALLURE_REPORT_DIR}/index.html"
-#   artifacts:
-#     when: always
-#     paths:
-#       - $ALLURE_REPORT_DIR/**
-#     expire_in: 1 week
-#   allow_failure: true
-
-
-# pages:
-#   stage: deploy
-#   image: alpine:latest
-#   variables:
-#     GIT_STRATEGY: none  # To prevent cloning the repo, since we're using curl and unzip
-#   script:
-#     - apk add --no-cache curl unzip jq
-
-#     # Download and extract the previous 'public/' artifacts
-#     - |
-#       if curl --silent --fail --show-error --header "JOB-TOKEN: ${GITLAB_ACCESS_TOKEN}" \
-#         "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/jobs/artifacts/${CI_COMMIT_REF_NAME}/download?job=pages" \
-#         --output previous_artifacts.zip; then
-#         echo "Previous artifacts downloaded successfully."
-#         file previous_artifacts.zip
-#         head -n 20 previous_artifacts.zip
-#         unzip -o previous_artifacts.zip -d .
-#       else
-#         echo "No previous artifacts to download."
-#       fi
-
-#     # Add the new report
-#     - mkdir -p ${REPORT_DIR}
-#     - mv $ALLURE_REPORT_DIR/* ${REPORT_DIR}
-
-#     # Generate the index.html
-#     - chmod +x ./scripts/generate_index.sh
-#     - ./scripts/generate_index.sh
-
-#     # Add the new report
-#     - mkdir -p ${REPORT_DIR}
-#     - mv $ALLURE_REPORT_DIR/* ${REPORT_DIR}
-
-#     # Generate the index.html
-#     - chmod +x ./scripts/generate_index.sh
-#     - ./scripts/generate_index.sh
-#   artifacts:
-#     paths:
-#       - public
-#     expire_in: 1 week
-#   only:
-#     - branches
-
-#publish_email_report:
-#  stage: notify
-#  script:
-#    - apt-get update && apt-get install -y curl jq
-#    - REPORT_CONTENT=$(jq -sRr @json < mail_template/template.html)
-#    - |
-#      echo "{\"report\": $REPORT_CONTENT}" > payload.json
-#    - |
-#      curl -H 'Content-Type: application/json' -d @payload.json $WEBHOOK_TEAMS_REPORTING
