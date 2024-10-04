@@ -99,6 +99,7 @@ generate_allure_report:
     when: always
     paths:
       - $ALLURE_REPORT_DIR
+      - $ALLURE_RESULTS_DIR/*
     expire_in: 1 week
 
 pages:
