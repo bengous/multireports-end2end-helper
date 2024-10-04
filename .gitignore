@@ -56,3 +56,4 @@ build/
 
 /.allure/
 test-output/*
+/backup/

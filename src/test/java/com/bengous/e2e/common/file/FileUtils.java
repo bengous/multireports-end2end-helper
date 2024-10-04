@@ -19,6 +19,18 @@ import java.util.UUID;
 public class FileUtils {
     private static final ClassLoader classLoader = FileUtils.class.getClassLoader();
 
+    public static Path getResourcePath(String resourceName) throws IOException {
+        URL resourceUrl = classLoader.getResource(resourceName);
+        if (resourceUrl == null) {
+            throw new FileNotFoundException("File not found: " + resourceName);
+        }
+        try {
+            return Path.of(resourceUrl.toURI());
+        } catch (URISyntaxException e) {
+            throw new IOException("Invalid resource URI: " + resourceName, e);
+        }
+    }
+
     public static File getResourceFile(String resourceName) throws IOException {
         URL resourceUrl = classLoader.getResource(resourceName);
         if (resourceUrl == null) {
