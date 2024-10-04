@@ -109,23 +109,19 @@ pages:
 
     - rm -rf public
 
-    - git clone --depth 1 --branch pages https://oauth2:${PAT_CI_CUSTOM_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git public || mkdir public
+    - |
+      git clone --depth 1 --branch pages \
+        https://oauth2:${PAT_CI_CUSTOM_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git public || mkdir public
 
     - mkdir -p public/$CI_PIPELINE_ID
     - cp -r $ALLURE_REPORT_DIR/* public/$CI_PIPELINE_ID
 
-    - |
-      echo "<html><body><h1>Allure reports</h1><ul>" > public/index.html
-      for dir in $(ls public); do
-        if [ -d "public/$dir" ] && [ "$dir" != "index.html" ]; then
-          echo "<li><a href='/$dir/index.html'>Report for Pipeline $dir</a></li>" >> public/index.html
-        fi
-      done
-      echo "</ul></body></html>" >> public/index.html
+    - chmod +x ./scripts/generate_public_index.sh
+    - ./scripts/generate_public_index.sh
 
     - cd public
     - git add .
-    - git commit -m "Add report for pipeline $CI_PIPELINE_ID [skip ci]" || echo "No changes to commit"
+    - git commit -m "[skip ci] Add report for pipeline $CI_PIPELINE_ID" || echo "No changes to commit"
     - git push https://oauth2:${PAT_CI_CUSTOM_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git pages
   artifacts:
     paths:
