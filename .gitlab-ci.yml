@@ -104,18 +104,18 @@ generate_allure_report:
 pages:
   stage: deploy
   script:
-    - git config --global user.name "GitLab CI"
-    - git config --global user.email "ci@example.com"
+    - git config --global user.name "GitLab CI automation"
+    - git config --global user.email "augustin@bengolea.com"
 
     - rm -rf public
 
-    - git clone --depth 1 --branch pages https://gitlab-ci-token:${PAT_CI_CUSTOM_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git public || mkdir public
+    - git clone --depth 1 --branch pages https://oauth2:${PAT_CI_CUSTOM_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git public || mkdir public
 
     - mkdir -p public/$CI_PIPELINE_ID
     - cp -r $ALLURE_REPORT_DIR/* public/$CI_PIPELINE_ID
 
     - |
-      echo "<html><body><h1>Allure Reports Index</h1><ul>" > public/index.html
+      echo "<html><body><h1>Allure reports</h1><ul>" > public/index.html
       for dir in $(ls public); do
         if [ -d "public/$dir" ] && [ "$dir" != "index.html" ]; then
           echo "<li><a href='/$dir/index.html'>Report for Pipeline $dir</a></li>" >> public/index.html
