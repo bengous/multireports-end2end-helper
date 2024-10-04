@@ -15,6 +15,8 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.UUID;
 
 @Log4j2
 public abstract class BaseTest {
@@ -22,7 +24,7 @@ public abstract class BaseTest {
     public static String API_URL;
 
     /**
-     * @param apiURL - La valeur de ce parametre est définie dans le fichier «./src/test/resources/testng/testng-*.xml »
+     * @param apiURL         - La valeur de ce parametre est définie dans le fichier «./src/test/resources/testng/testng-*.xml »
      * @param apiURLfallback - si jamais on oublie de spécifier une URL dans la pipeline
      */
     @BeforeSuite(alwaysRun = true)
@@ -47,7 +49,13 @@ public abstract class BaseTest {
 
     @BeforeMethod(alwaysRun = true, description = "Créer le fichier de log")
     public void setUpBeforeMethod(ITestResult result) {
-        var testLogFilename = result.getMethod().getRealClass().getSimpleName() + "_" + result.getMethod().getMethodName();
+        String testLogFilename;
+        if (isASmokeTest(result)) {
+            testLogFilename = UUID.randomUUID() + "_" + result.getMethod().getMethodName();
+        } else {
+            testLogFilename =
+                    result.getMethod().getRealClass().getSimpleName() + "_" + result.getMethod().getMethodName();
+        }
         ThreadContext.put("testLogFilename", testLogFilename);
         Path logFilePath = getTestLogPath(testLogFilename);
 
@@ -61,7 +69,7 @@ public abstract class BaseTest {
     }
 
     @AfterMethod(alwaysRun = true, description = "Servir le fichier de log")
-    public void attachLogToScenario()  {
+    public void attachLogToScenario() {
         var testLogFilename = ThreadContext.get("testLogFilename");
         log.info("TEST END: \"{}\"", testLogFilename);
 
@@ -83,5 +91,10 @@ public abstract class BaseTest {
 
     private static Path getTestLogPath(String testLogFilename) {
         return Paths.get(LOG_DIRECTORY, testLogFilename + ".log");
+    }
+
+    private static boolean isASmokeTest(ITestResult test) {
+        return Arrays.asList(test.getMethod().getGroups())
+                     .contains(TestType.SMOKE);
     }
 }
