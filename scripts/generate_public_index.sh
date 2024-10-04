@@ -1,22 +1,24 @@
 #!/usr/bin/env bash
 
+cd public || exit 1 # 404
+
 echo "
 <html>
   <body>
     <h1>Allure reports</h1>
     <ul>
-" > public/index.html
+" > index.html
 
 for dir in */; do
-  if [ -d "public/$dir" ] && [ "$dir" != "index.html" ]; then
+    # https://unix.stackexchange.com/questions/86722/how-do-i-loop-through-only-directories-in-bash#answer-86724
+    [ -L "${dir%/}" ] && continue
     echo "
     <li><a href='/$dir/index.html'>Report $dir</a></li>
-    " >> public/index.html
-  fi
+    " >> index.html
 done
 
 echo "
     </ul>
   </body>
 </html>
-" >> public/index.html
+" >> index.html
