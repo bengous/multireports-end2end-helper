@@ -52,9 +52,11 @@ prepare:
 #   find the docs and the way of doing that
 
 backup_history:
+  image: alpine:3.20.3
   stage: prepare
+  before_script:
+    - apk add --no-cache bash curl unzip
   script:
-    - apt-get update && apt-get install -y unzip
     - chmod +x ./scripts/backup_allure_history.sh
     - ./scripts/backup_allure_history.sh
     - mkdir -p $REPORTS_BASE_DIR
