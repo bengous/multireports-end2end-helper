@@ -1,7 +1,5 @@
-image: maven:3.9.8-eclipse-temurin-21
 stages:
-  - dockerize
-#  - prepare
+  - build_caches
   - run_tests
   - make_reports
   - deploy
@@ -31,24 +29,43 @@ cache:
   paths:
     - .m2/repository
 
-# Docker image caching -> https://gitlab.com/augustin_bengolea/maven-e2e-archetype/container_registry
-# https://docs.gitlab.com/ee/ci/docker/docker_layer_caching.html
-prepare:
-  stage: dockerize
+# Docker image caching
+# Documentation :
+# - https://docs.gitlab.com/ee/ci/docker/docker_layer_caching.
+# - Build & Use Custom Docker images in your GitLab CI/CD pipeline : https://www.youtube.com/watch?v=7I6tHw68DMQ
+# - https://dev.to/zenika/gitlab-ci-optimization-15-tips-for-faster-pipelines-55al#2-use-small-linux-distributions
+build_docker_image:
+  stage: build_caches
   image: docker:24.0.5
   services:
     - docker:24.0.5-dind
   rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule"
-    - if: $CI_PIPELINE_SOURCE == "web"
-    - if: $UPDATE_MAVEN_IMAGE
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
   script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker pull maven:3.9.8-eclipse-temurin-21
-    - docker tag maven:3.9.8-eclipse-temurin-21 $CI_REGISTRY_IMAGE/maven:3.9.8-eclipse-temurin-21
-    - docker push $CI_REGISTRY_IMAGE/maven:3.9.8-eclipse-temurin-21
+    - docker pull $CI_REGISTRY_IMAGE:latest || true
 
-# TODO: maven package caching -> https://gitlab.com/augustin_bengolea/maven-e2e-archetype/-/packages
+    - |
+      docker build --build-arg BUILDKIT_INLINE_CACHE=1 \
+      --cache-from $CI_REGISTRY_IMAGE:latest \
+      --tag $CI_REGISTRY_IMAGE/lightweight:$CI_COMMIT_SHA \
+      --tag $CI_REGISTRY_IMAGE/lightweight:latest \
+      -f docker/lightweight/Dockerfile .
+    - docker push $CI_REGISTRY_IMAGE/lightweight:$CI_COMMIT_SHA
+    - docker push $CI_REGISTRY_IMAGE/lightweight:latest
+
+    - |
+      docker build --build-arg BUILDKIT_INLINE_CACHE=1 \
+      --cache-from $CI_REGISTRY_IMAGE:latest \
+      --tag $CI_REGISTRY_IMAGE/maven-java21:$CI_COMMIT_SHA \
+      --tag $CI_REGISTRY_IMAGE/maven-java21:latest \
+      -f docker/maven-java21/Dockerfile .
+    - docker push $CI_REGISTRY_IMAGE/maven-java21:$CI_COMMIT_SHA
+    - docker push $CI_REGISTRY_IMAGE/maven-java21:latest
+
+
+# TODO: maven .m2 package caching -> https://gitlab.com/augustin_bengolea/maven-e2e-archetype/-/packages
 #   find the docs and the way of doing that
 
 # TODO: le backup pour la trendline ne marche plus - investiguer
@@ -68,7 +85,10 @@ prepare:
 
 #TODO: variabiliser target.suite.xml.file pour obliger le choix entre telle ou telle API. Et mettre en place un fallback
 tests:
+  image: $CI_REGISTRY_IMAGE/maven-java21:latest
   stage: run_tests
+  rules:
+    - if: '$CI_PIPELINE_SOURCE != "schedule"'
   script:
     - |
       mvn clean test -Dapi.url=${API_URL} \
@@ -89,7 +109,10 @@ tests:
     expire_in: 1 week
 
 generate_allure_report:
+  image: $CI_REGISTRY_IMAGE/maven-java21:latest
   stage: make_reports
+  rules:
+    - if: '$CI_PIPELINE_SOURCE != "schedule"'
   script:
     - mvn allure:report
     - |
@@ -106,7 +129,10 @@ generate_allure_report:
     expire_in: 1 week
 
 pages:
+  image: $CI_REGISTRY_IMAGE/lightweight:latest
   stage: deploy
+  rules:
+    - if: '$CI_PIPELINE_SOURCE != "schedule"'
   script:
     - git config --global user.name "GitLab CI automation"
     - git config --global user.email "augustin@bengolea.com"
