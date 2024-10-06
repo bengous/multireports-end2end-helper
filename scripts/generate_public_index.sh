@@ -13,7 +13,7 @@ for dir in */; do
     # https://unix.stackexchange.com/questions/86722/how-do-i-loop-through-only-directories-in-bash#answer-86724
     [ -L "${dir%/}" ] && continue
     echo "
-    <li><a href='/$dir/index.html'>Report $dir</a></li>
+    <li><a href='/${dir}index.html'>Report ${dir}</a></li>
     " >> index.html
 done
 
