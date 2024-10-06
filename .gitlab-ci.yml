@@ -26,8 +26,10 @@ variables:
   REPORTS_BASE_DIR: allure-reports
 
 cache:
+  key: "global-maven-cache"
   paths:
     - .m2/repository
+  policy: pull-push
 
 # Docker image caching
 # Documentation :
@@ -92,7 +94,8 @@ tests:
   script:
     - |
       mvn clean test -Dapi.url=${API_URL} \
-                     -Dtarget.suite.xml.file=src/test/resources/testng/testng-jsonapi.xml
+                     -Dtarget.suite.xml.file=src/test/resources/testng/testng-jsonapi.xml \
+                     -Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository
     - |
       if [ -d "$BACKUP_HISTORY_DIR" ] && [ "$(ls -A $BACKUP_HISTORY_DIR)" ]; then
         mkdir -p $ALLURE_RESULTS_DIR/history
@@ -114,7 +117,7 @@ generate_allure_report:
   rules:
     - if: '$CI_PIPELINE_SOURCE != "schedule"'
   script:
-    - mvn allure:report
+    - mvn allure:report -Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository
     - |
       if [ ! -d "$ALLURE_REPORT_DIR" ]; then
         echo "Allure report directory not found. Creating a dummy report."
