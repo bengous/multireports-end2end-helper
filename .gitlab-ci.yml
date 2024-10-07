@@ -24,6 +24,12 @@ variables:
   REPORT_DIR: "public/${CI_COMMIT_REF_NAME}/${CI_PIPELINE_ID}"
   INDEX_FILE: "public/index.html"
   REPORTS_BASE_DIR: allure-reports
+  SCRIPTS_DEBUG_MODE:
+    value: "disabled"
+    description: Enable debug mode. Useful when debugging bash scripts within the CI.
+    options:
+      - "enabled"
+      - "disabled"
 
 cache:
   key: "global-maven-cache"
@@ -43,6 +49,10 @@ build_docker_image:
     - docker:24.0.5-dind
   rules:
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - if: $CI_COMMIT_BRANCH
+      changes:
+        paths:
+          - docker/**
   before_script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
   script:
@@ -65,10 +75,6 @@ build_docker_image:
       -f docker/maven-java21/Dockerfile .
     - docker push $CI_REGISTRY_IMAGE/maven-java21:$CI_COMMIT_SHA
     - docker push $CI_REGISTRY_IMAGE/maven-java21:latest
-
-
-# TODO: maven .m2 package caching -> https://gitlab.com/augustin_bengolea/maven-e2e-archetype/-/packages
-#   find the docs and the way of doing that
 
 # TODO: le backup pour la trendline ne marche plus - investiguer
 #backup_history:
@@ -151,6 +157,9 @@ pages:
 
     - chmod +x ./scripts/generate_public_index.sh
     - ./scripts/generate_public_index.sh
+
+    - chmod +x ./scripts/generate_report_specifics.sh
+    - ./scripts/generate_report_specifics.sh
 
     - cd public
     - git add .
