@@ -155,9 +155,6 @@ pages:
     - mkdir -p public/$CI_PIPELINE_ID
     - cp -r $ALLURE_REPORT_DIR/* public/$CI_PIPELINE_ID
 
-    - chmod +x ./scripts/generate_public_index.sh
-    - ./scripts/generate_public_index.sh
-
     - chmod +x ./scripts/generate_report_specifics.sh
     - ./scripts/generate_report_specifics.sh
 
