@@ -1,4 +1,6 @@
 package com.bengous.e2e.tests.jsonplaceholder.context;
 
-public record JsonPlaceholderContext() {
-}
+import lombok.Builder;
+
+@Builder(toBuilder = true)
+public record JsonPlaceholderContext(String value) {/**/}
