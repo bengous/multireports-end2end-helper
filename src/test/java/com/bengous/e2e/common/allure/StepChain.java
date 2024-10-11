@@ -93,19 +93,20 @@ public class StepChain<T> {
         return this;
     }
 
+    // FIXME: bug when an updated context is passed in the lambda call (eg. wither pattern)
     // Ajoute une étape qui utilise le contexte, mais ne le modifie pas.
     public StepChain<T> runVoidStep(String name, Allure.ThrowableContextRunnableVoid<T> code) {
         steps.add(new VoidContextStep<>(name, true, code));
         return this;
     }
 
-    public StepChain<T> runFreeStep(String name, boolean shouldReport, Allure.ThrowableRunnableVoid code) {
+    public StepChain<T> runContextFreeStep(String name, boolean shouldReport, Allure.ThrowableRunnableVoid code) {
         steps.add(new ContextFreeStep<>(name, shouldReport, code));
         return this;
     }
 
     // Exécute toutes les étapes définies dans la chaîne.
-    public void execute() {
+    public T execute() {
         T context = this.initialContext;
         for (Step<T> step : steps) {
             String uuid = null;
@@ -144,6 +145,8 @@ public class StepChain<T> {
         }
 
         assertNoErrors();
+
+        return context;
     }
 
     private void assertNoErrors() {
