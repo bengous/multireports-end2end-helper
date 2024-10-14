@@ -47,8 +47,8 @@ public class BScenarioTests extends BaseTest {
                         final int id = response.jsonPath().getInt("id");
                         Assertions.assertThat(id).isEqualTo(1);
                     });
-
-                    return context;
+                    String current = context.value();
+                    return context.toBuilder().value(current + "-1-").build();
                 })
                 .runStep("Get second post", context -> {
                     Response response = RestAssuredClient.get("/posts/2");
@@ -64,8 +64,13 @@ public class BScenarioTests extends BaseTest {
                             """;
                     JsonAssertion.areEquals("Should return the expected 1 post", expected, actual);
 
-                    return context;
+                    String current = context.value();
+                    return context.toBuilder().value(current + "-2-").build();
                 })
                 .execute();
+
+        Assertions.assertThat(finalContext)
+                  .isNotNull()
+                  .hasFieldOrPropertyWithValue("value", "test-1--2-");
     }
 }
