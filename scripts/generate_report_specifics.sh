@@ -18,7 +18,7 @@ CI_COMMIT_TITLE=${CI_COMMIT_TITLE:-$UNKNOWN}
 CI_PIPELINE_ID=${CI_PIPELINE_ID:-$UNKNOWN}
 GITLAB_USER_NAME=${GITLAB_USER_NAME:-$UNKNOWN}
 
-function initialize_reports_file() {
+function initialize_reports_file_if_not_found() {
   if [ ! -f "$ALL_REPORTS_INFO" ]; then
     echo "Creating empty reports file"
     echo '{
@@ -47,7 +47,7 @@ function update_report() {
 
 cd public || exit 1
 
-initialize_reports_file
+initialize_reports_file_if_not_found
 
 echo "Before update"
 cat "$ALL_REPORTS_INFO"
