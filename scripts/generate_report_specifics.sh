@@ -8,35 +8,46 @@ if [ "$SCRIPTS_DEBUG_MODE" = "enabled" ]; then
   set -x
 fi
 
-cd public || exit 1
-
-ALL_REPORTS_INFO="all_reports_info.json"
-if [ ! -f "$ALL_REPORTS_INFO" ]; then
-  echo "Creating empty reports file"
-  echo '{
-    "reports": []
-  }' > "$ALL_REPORTS_INFO"
-fi
-
+# Variables
 UNKNOWN="unknown"
+ALL_REPORTS_INFO="all_reports_info.json"
+## GitLab specific variables
 CI_COMMIT_BRANCH=${CI_COMMIT_BRANCH:-$UNKNOWN}
 CI_COMMIT_SHORT_SHA=${CI_COMMIT_SHORT_SHA:-$UNKNOWN}
 CI_COMMIT_TITLE=${CI_COMMIT_TITLE:-$UNKNOWN}
 CI_PIPELINE_ID=${CI_PIPELINE_ID:-$UNKNOWN}
 GITLAB_USER_NAME=${GITLAB_USER_NAME:-$UNKNOWN}
 
+function initialize_reports_file() {
+  if [ ! -f "$ALL_REPORTS_INFO" ]; then
+    echo "Creating empty reports file"
+    echo '{
+      "reports": []
+    }' > "$ALL_REPORTS_INFO"
+  fi
+}
+
 function update_report() {
   local tmp_file
   tmp_file=$(mktemp)
-  jq ".reports += [{
-    \"branch\": \"$1\",
-    \"commitSha\": \"$2\",
-    \"commitTitle\": \"$3\",
-    \"pipelineId\": \"$4\",
-    \"username\": \"$5\",
-  }]" "$ALL_REPORTS_INFO" > "$tmp_file"
+  jq --arg branch "$1" \
+    --arg commitSha "$2" \
+    --arg commitTitle "$3" \
+    --arg pipelineId "$4" \
+    --arg username "$5" \
+    '.reports += [{
+      branch: $branch,
+      commitSha: $commitSha,
+      commitTitle: $commitTitle,
+      pipelineId: $pipelineId,
+      username: $username
+    }]' "$ALL_REPORTS_INFO" > "$tmp_file"
   mv "$tmp_file" "$ALL_REPORTS_INFO"
 }
+
+cd public || exit 1
+
+initialize_reports_file
 
 echo "Before update"
 cat "$ALL_REPORTS_INFO"
