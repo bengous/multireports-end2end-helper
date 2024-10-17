@@ -161,6 +161,7 @@ pages:
     - ./scripts/generate_report_specifics.sh
 
     - ls -la public/reports/$CI_PIPELINE_ID
+    - cat public/reports/$CI_PIPELINE_ID/index.html
 
     - cd public
     - git add .
