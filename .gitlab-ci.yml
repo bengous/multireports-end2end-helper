@@ -152,8 +152,8 @@ pages:
       git clone --depth 1 --branch pages \
         https://oauth2:${PAT_CI_CUSTOM_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git public || mkdir public
 
-    - mkdir -p public/$CI_PIPELINE_ID
-    - cp -r $ALLURE_REPORT_DIR/* public/$CI_PIPELINE_ID
+    - mkdir -p public/reports/$CI_PIPELINE_ID
+    - cp -r $ALLURE_REPORT_DIR/* public/reports/$CI_PIPELINE_ID
 
     - chmod +x ./scripts/generate_report_specifics.sh
     - ./scripts/generate_report_specifics.sh
