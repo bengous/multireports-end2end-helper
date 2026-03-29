@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="Blog Demo">
+    <parameter name="apiURL" value="api.url"/>
+    <parameter name="apiURLfallback" value="api.url.blogdemo.fallback"/>
+    <test name="Blog Lifecycle E2E">
+        <groups>
+            <run>
+                <include name="scenario"/>
+            </run>
+        </groups>
+        <packages>
+            <package name="com.bengous.e2e.tests.blogdemo.*"/>
+        </packages>
+    </test>
+</suite>

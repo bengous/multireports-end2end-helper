@@ -1,0 +1,6 @@
+{
+  "userId": {{userId}},
+  "title": "Mon article de démonstration E2E",
+  "body": "Cet article a été créé automatiquement par le scénario de test end-to-end pour démontrer les capacités du framework.",
+  "status": "draft"
+}
