@@ -1,0 +1,28 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "Alice Martin",
+      "email": "alice@example.com",
+      "role": "admin"
+    }
+  ],
+  "posts": [
+    {
+      "id": 1,
+      "userId": 1,
+      "title": "Premier article",
+      "body": "Contenu du premier article de Alice.",
+      "status": "published",
+      "createdAt": "2026-01-15T10:00:00Z"
+    }
+  ],
+  "comments": [
+    {
+      "id": 1,
+      "postId": 1,
+      "author": "Bob",
+      "body": "Super article !"
+    }
+  ]
+}

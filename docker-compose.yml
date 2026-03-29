@@ -1,0 +1,10 @@
+services:
+  mock-api:
+    build: docker/json-server
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/users"]
+      interval: 2s
+      timeout: 5s
+      retries: 5
