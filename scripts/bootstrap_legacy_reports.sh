@@ -50,6 +50,8 @@ for run_id in "${legacy_run_ids[@]}"; do
   REPORT_COMMIT_SHA="$(printf '%s' "$run_payload" | jq -r '.head_sha[0:7]')"
   export REPORT_COMMIT_TITLE
   REPORT_COMMIT_TITLE="$(printf '%s' "$run_payload" | jq -r '.head_commit.message')"
+  export REPORT_COMMIT_TIMESTAMP
+  REPORT_COMMIT_TIMESTAMP="$(printf '%s' "$run_payload" | jq -r '.head_commit.timestamp // .created_at // "unknown"')"
   export REPORT_RUN_ID="$run_id"
   export REPORT_ACTOR
   REPORT_ACTOR="$(printf '%s' "$run_payload" | jq -r '.actor.login')"
