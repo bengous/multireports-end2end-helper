@@ -67,9 +67,12 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: public
-          key: pages-site-${{ github.event.repository.default_branch }}-${{ github.run_id }}
+          key: pages-site-v2-${{ github.run_id }}
           restore-keys: |
-            pages-site-${{ github.event.repository.default_branch }}-
+            pages-site-v2-
+            pages-site-dev-
+            pages-site-main-
+            pages-site-
 
       - name: Restore Allure history
         if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
@@ -157,7 +160,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: public
-          key: pages-site-${{ github.event.repository.default_branch }}-${{ github.run_id }}
+          key: pages-site-v2-${{ github.run_id }}
 
       - name: Upload GitHub Pages artifact
         if: always() && github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
