@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Java 21 E2E API testing framework using TestNG, RestAssured, and Allure reporting. Designed for multi-environment testing with GitLab CI/CD pipeline integration that publishes Allure reports to GitLab Pages.
+Java 21 E2E API testing framework using TestNG, RestAssured, and Allure reporting. Designed for multi-environment testing with GitHub Actions CI/CD and GitHub Pages report publishing.
 
 ## Build & Test Commands
 
@@ -60,9 +60,9 @@ new StepChain<>(initialContext)
 
 ### CI/CD
 
-GitLab CI stages: `build_caches` -> `run_tests` -> `make_reports` -> `deploy`
+GitHub Actions runs CI on `dev` and `master`, generates Allure reports, and deploys the default branch site to GitHub Pages.
 
-Reports are pushed to `pages` branch and accessible via GitLab Pages. Pipeline metadata tracked in `public/all_reports_info.json`.
+Published report metadata is tracked in `public/all_reports_info.json`.
 
 ## Code Style
 

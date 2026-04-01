@@ -11,12 +11,11 @@ fi
 # Variables
 UNKNOWN="unknown"
 ALL_REPORTS_INFO="all_reports_info.json"
-## GitLab specific variables
-CI_COMMIT_BRANCH=${CI_COMMIT_BRANCH:-$UNKNOWN}
-CI_COMMIT_SHORT_SHA=${CI_COMMIT_SHORT_SHA:-$UNKNOWN}
-CI_COMMIT_TITLE=${CI_COMMIT_TITLE:-$UNKNOWN}
-CI_PIPELINE_ID=${CI_PIPELINE_ID:-$UNKNOWN}
-GITLAB_USER_NAME=${GITLAB_USER_NAME:-$UNKNOWN}
+REPORT_BRANCH=${REPORT_BRANCH:-${GITHUB_REF_NAME:-$UNKNOWN}}
+REPORT_COMMIT_SHA=${REPORT_COMMIT_SHA:-${GITHUB_SHA:-$UNKNOWN}}
+REPORT_COMMIT_TITLE=${REPORT_COMMIT_TITLE:-$UNKNOWN}
+REPORT_RUN_ID=${REPORT_RUN_ID:-${GITHUB_RUN_ID:-$UNKNOWN}}
+REPORT_ACTOR=${REPORT_ACTOR:-${GITHUB_ACTOR:-$UNKNOWN}}
 
 function initialize_reports_file_if_not_found() {
   if [ ! -f "$ALL_REPORTS_INFO" ]; then
@@ -33,15 +32,20 @@ function update_report() {
   jq --arg branch "$1" \
     --arg commitSha "$2" \
     --arg commitTitle "$3" \
-    --arg pipelineId "$4" \
-    --arg username "$5" \
-    '.reports += [{
+    --arg runId "$4" \
+    --arg actor "$5" \
+    '
+    .reports |= map(select(.runId != $runId and .pipelineId != $runId))
+    | .reports += [{
       branch: $branch,
       commitSha: $commitSha,
       commitTitle: $commitTitle,
-      pipelineId: $pipelineId,
-      username: $username
-    }]' "$ALL_REPORTS_INFO" > "$tmp_file"
+      runId: $runId,
+      pipelineId: $runId,
+      actor: $actor,
+      username: $actor
+    }]
+    ' "$ALL_REPORTS_INFO" > "$tmp_file"
   mv "$tmp_file" "$ALL_REPORTS_INFO"
 }
 
@@ -51,7 +55,7 @@ initialize_reports_file_if_not_found
 
 echo "Before update"
 cat "$ALL_REPORTS_INFO"
-if ! update_report "$CI_COMMIT_BRANCH" "$CI_COMMIT_SHORT_SHA" "$CI_COMMIT_TITLE" "$CI_PIPELINE_ID" "$GITLAB_USER_NAME"; then
+if ! update_report "$REPORT_BRANCH" "$REPORT_COMMIT_SHA" "$REPORT_COMMIT_TITLE" "$REPORT_RUN_ID" "$REPORT_ACTOR"; then
   echo "Error updating JSON" >&2
   exit 1
 fi
