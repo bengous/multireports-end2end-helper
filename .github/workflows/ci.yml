@@ -2,6 +2,7 @@ name: CI
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  UPLOAD_TEST_ARTIFACTS: "true"
 
 on:
   push:
@@ -10,49 +11,18 @@ on:
   pull_request:
     branches:
       - main
-  workflow_dispatch:
-    inputs:
-      api_url:
-        description: "Override API URL"
-        required: false
-        type: string
-      suite_file:
-        description: "TestNG suite file"
-        required: false
-        default: "src/test/resources/testng/testng-jsonapi.xml"
-        type: string
-      debug_mode:
-        description: "Enable shell script debug mode"
-        required: false
-        default: "disabled"
-        type: choice
-        options:
-          - disabled
-          - enabled
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  test-and-report:
+  test:
     runs-on: ubuntu-latest
-    outputs:
-      tests_outcome: ${{ steps.test_execution.outcome }}
     permissions:
-      actions: read
       contents: read
-      pages: write
-      id-token: write
     env:
-      ALLURE_RESULTS_DIR: target/allure-results
-      ALLURE_REPORT_DIR: target/site/allure-maven-plugin
-      BACKUP_HISTORY_DIR: backup/history
-      PUBLIC_DIR: public
       DEFAULT_SUITE_FILE: src/test/resources/testng/testng-jsonapi.xml
-      API_URL: ${{ inputs.api_url }}
-      TARGET_SUITE_FILE: ${{ inputs.suite_file }}
-      SCRIPTS_DEBUG_MODE: ${{ inputs.debug_mode || 'disabled' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -64,154 +34,18 @@ jobs:
           java-version: "21"
           cache: maven
 
-      - name: Configure GitHub Pages
-        if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
-
-      - name: Restore published reports cache
-        if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
-        uses: actions/cache/restore@v5
-        with:
-          path: public
-          key: pages-site-v2-${{ github.run_id }}
-          restore-keys: |
-            pages-site-v2-
-            pages-site-dev-
-            pages-site-main-
-            pages-site-
-
-      - name: Bootstrap legacy reports
-        if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO_SLUG: ${{ github.repository }}
-        run: |
-          chmod +x ./scripts/bootstrap_legacy_reports.sh
-          ./scripts/bootstrap_legacy_reports.sh
-
-      - name: Restore Allure history
-        if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
-        run: |
-          chmod +x ./scripts/backup_allure_history.sh
-          ./scripts/backup_allure_history.sh
-
       - name: Run tests
-        id: test_execution
-        continue-on-error: true
         run: |
           mvn --batch-mode --no-transfer-progress clean test \
-            -Dapi.url="${API_URL}" \
-            -Dtarget.suite.xml.file="${TARGET_SUITE_FILE:-$DEFAULT_SUITE_FILE}"
-
-      - name: Inject Allure history into results
-        if: always() && github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
-        run: |
-          if [ -d "$BACKUP_HISTORY_DIR" ] && [ "$(ls -A "$BACKUP_HISTORY_DIR")" ]; then
-            mkdir -p "$ALLURE_RESULTS_DIR/history"
-            cp -rv "$BACKUP_HISTORY_DIR/." "$ALLURE_RESULTS_DIR/history/"
-          else
-            echo "No previous history to restore"
-          fi
-
-      - name: Generate Allure report
-        if: always()
-        continue-on-error: true
-        run: mvn --batch-mode --no-transfer-progress allure:report
-
-      - name: Ensure report directory exists
-        if: always()
-        run: |
-          if [ ! -d "$ALLURE_REPORT_DIR" ]; then
-            echo "Allure report directory not found. Creating a dummy report."
-            mkdir -p "$ALLURE_REPORT_DIR"
-            printf '%s\n' \
-              '<html>' \
-              '  <body>' \
-              '    <h1>Allure Report</h1>' \
-              '    <p>Report generation failed. Please check the workflow logs.</p>' \
-              '  </body>' \
-              '</html>' > "$ALLURE_REPORT_DIR/index.html"
-          fi
-
-      - name: Inject index backlink into Allure report
-        if: always()
-        run: |
-          chmod +x ./scripts/override_report_files.sh
-          ./scripts/override_report_files.sh
-
-      - name: Assemble static site
-        if: always() && github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
-        env:
-          REPORT_BRANCH: ${{ github.ref_name }}
-          REPORT_RUN_ID: ${{ github.run_id }}
-          REPORT_ACTOR: ${{ github.actor }}
-        run: |
-          REPORT_COMMIT_SHA="$(git rev-parse --short HEAD)"
-          REPORT_COMMIT_TITLE="$(git log -1 --pretty=%s)"
-          REPORT_COMMIT_TIMESTAMP="$(TZ=UTC git log -1 --date=format-local:'%Y-%m-%dT%H:%M:%SZ' --pretty=%cd)"
-          export REPORT_COMMIT_SHA
-          export REPORT_COMMIT_TITLE
-          export REPORT_COMMIT_TIMESTAMP
-
-          mkdir -p "$PUBLIC_DIR/reports/$REPORT_RUN_ID"
-          cp -r "$ALLURE_REPORT_DIR/." "$PUBLIC_DIR/reports/$REPORT_RUN_ID/"
-
-          chmod +x ./scripts/generate_report_specifics.sh
-          ./scripts/generate_report_specifics.sh
-
-          chmod +x ./scripts/generate_public_index.sh
-          ./scripts/generate_public_index.sh
+            -Dtarget.suite.xml.file="$DEFAULT_SUITE_FILE"
 
       - name: Upload test artifacts
-        if: always()
+        if: always() && env.UPLOAD_TEST_ARTIFACTS == 'true'
         uses: actions/upload-artifact@v6
         with:
-          name: allure-results-${{ github.run_id }}
+          name: test-artifacts-${{ github.run_id }}
           path: |
             target/allure-results
-            target/site/allure-maven-plugin
+            target/surefire-reports
           if-no-files-found: warn
           compression-level: 0
-
-      - name: Save published reports cache
-        if: always() && github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
-        uses: actions/cache/save@v5
-        with:
-          path: public
-          key: pages-site-v2-${{ github.run_id }}
-
-      - name: Upload GitHub Pages artifact
-        if: always() && github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: public
-
-  deploy-pages:
-    if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
-    needs: test-and-report
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-
-  ci-status:
-    if: always()
-    needs:
-      - test-and-report
-      - deploy-pages
-    runs-on: ubuntu-latest
-    steps:
-      - name: Fail if tests failed
-        if: needs.test-and-report.outputs.tests_outcome == 'failure'
-        run: |
-          echo "Tests failed. Report artifacts were still generated."
-          exit 1
