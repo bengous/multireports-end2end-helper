@@ -2,16 +2,20 @@ package com.bengous.e2e.common.allure;
 
 import io.qameta.allure.Allure;
 import io.qameta.allure.model.Status;
+import io.qameta.allure.model.StatusDetails;
 import io.qameta.allure.model.StepResult;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.testng.Assert;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 /**
  * Utilitaire permettant de créer une chaîne d'étapes de test avec gestion du contexte et rapports Allure.
@@ -76,8 +80,7 @@ public class StepChain<T> {
         }
     }
 
-    private record StepError(String stepName, Throwable error) {
-    }
+    private record StepError(String stepName, String errorTitle, Throwable error) {/**/}
 
     private final List<Step<T>> steps = new ArrayList<>();
     private StepError stepError = null;
@@ -100,6 +103,10 @@ public class StepChain<T> {
         return this;
     }
 
+    public StepChain<T> runContextFreeStep(String name, Allure.ThrowableRunnableVoid code) {
+        steps.add(new ContextFreeStep<>(name, true, code));
+        return this;
+    }
     public StepChain<T> runContextFreeStep(String name, boolean shouldReport, Allure.ThrowableRunnableVoid code) {
         steps.add(new ContextFreeStep<>(name, shouldReport, code));
         return this;
@@ -130,10 +137,16 @@ public class StepChain<T> {
                     }
                 }
             } catch (Throwable t) {
-                stepError = new StepError(step.name(), t);
+                stepError = new StepError(step.name(), firstLine(t.getMessage()), t);
                 if (step.shouldReport()) {
-                    Allure.getLifecycle().updateStep(uuid, s -> s.setStatus(Status.FAILED));
-                    Allure.addAttachment("Step Failure", t.getMessage());
+                    Allure.addAttachment("Fichier log erreur", "text/plain", streamStackTrace(t), ".error");
+                    Allure.getLifecycle().updateStep(uuid, s -> {
+                        s.setStatus(Status.FAILED);
+                        var details = new StatusDetails()
+                                .setMessage(stepError.errorTitle)
+                                .setTrace(stepError.error.getMessage());
+                        s.setStatusDetails(details);
+                    });
                 }
                 log.error("STEP ERROR: \"{}\":\n{}", step.name(), t.getMessage());
             } finally {
@@ -158,5 +171,15 @@ public class StepChain<T> {
             );
             Assert.fail(message);
         }
+    }
+
+    private String firstLine(String message) {
+        return Stream.of(message.split("\n")).findFirst().orElse("Erreur");
+    }
+
+    private String streamStackTrace(Throwable t) {
+        StringWriter writer = new StringWriter();
+        t.printStackTrace(new PrintWriter(writer));
+        return writer.toString();
     }
 }
