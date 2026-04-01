@@ -14,8 +14,25 @@ ALL_REPORTS_INFO="all_reports_info.json"
 REPORT_BRANCH=${REPORT_BRANCH:-${GITHUB_REF_NAME:-$UNKNOWN}}
 REPORT_COMMIT_SHA=${REPORT_COMMIT_SHA:-${GITHUB_SHA:-$UNKNOWN}}
 REPORT_COMMIT_TITLE=${REPORT_COMMIT_TITLE:-$UNKNOWN}
+REPORT_COMMIT_TIMESTAMP=${REPORT_COMMIT_TIMESTAMP:-$UNKNOWN}
 REPORT_RUN_ID=${REPORT_RUN_ID:-${GITHUB_RUN_ID:-$UNKNOWN}}
 REPORT_ACTOR=${REPORT_ACTOR:-${GITHUB_ACTOR:-$UNKNOWN}}
+
+function normalize_timestamp() {
+  local timestamp="$1"
+
+  if [ "$timestamp" = "$UNKNOWN" ] || [ -z "$timestamp" ]; then
+    printf '%s\n' "$UNKNOWN"
+    return 0
+  fi
+
+  if normalized="$(date -u -d "$timestamp" '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null)"; then
+    printf '%s\n' "$normalized"
+    return 0
+  fi
+
+  printf '%s\n' "$timestamp"
+}
 
 function initialize_reports_file_if_not_found() {
   if [ ! -f "$ALL_REPORTS_INFO" ]; then
@@ -32,14 +49,16 @@ function update_report() {
   jq --arg branch "$1" \
     --arg commitSha "$2" \
     --arg commitTitle "$3" \
-    --arg runId "$4" \
-    --arg actor "$5" \
+    --arg commitTimestamp "$4" \
+    --arg runId "$5" \
+    --arg actor "$6" \
     '
     .reports |= map(select(.runId != $runId and .pipelineId != $runId))
     | .reports += [{
       branch: $branch,
       commitSha: $commitSha,
       commitTitle: $commitTitle,
+      commitTimestamp: $commitTimestamp,
       runId: $runId,
       pipelineId: $runId,
       actor: $actor,
@@ -52,10 +71,11 @@ function update_report() {
 cd public || exit 1
 
 initialize_reports_file_if_not_found
+REPORT_COMMIT_TIMESTAMP="$(normalize_timestamp "$REPORT_COMMIT_TIMESTAMP")"
 
 echo "Before update"
 cat "$ALL_REPORTS_INFO"
-if ! update_report "$REPORT_BRANCH" "$REPORT_COMMIT_SHA" "$REPORT_COMMIT_TITLE" "$REPORT_RUN_ID" "$REPORT_ACTOR"; then
+if ! update_report "$REPORT_BRANCH" "$REPORT_COMMIT_SHA" "$REPORT_COMMIT_TITLE" "$REPORT_COMMIT_TIMESTAMP" "$REPORT_RUN_ID" "$REPORT_ACTOR"; then
   echo "Error updating JSON" >&2
   exit 1
 fi

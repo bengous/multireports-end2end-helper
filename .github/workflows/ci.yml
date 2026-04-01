@@ -150,8 +150,10 @@ jobs:
         run: |
           REPORT_COMMIT_SHA="$(git rev-parse --short HEAD)"
           REPORT_COMMIT_TITLE="$(git log -1 --pretty=%s)"
+          REPORT_COMMIT_TIMESTAMP="$(TZ=UTC git log -1 --date=format-local:'%Y-%m-%dT%H:%M:%SZ' --pretty=%cd)"
           export REPORT_COMMIT_SHA
           export REPORT_COMMIT_TITLE
+          export REPORT_COMMIT_TIMESTAMP
 
           mkdir -p "$PUBLIC_DIR/reports/$REPORT_RUN_ID"
           cp -r "$ALLURE_REPORT_DIR/." "$PUBLIC_DIR/reports/$REPORT_RUN_ID/"

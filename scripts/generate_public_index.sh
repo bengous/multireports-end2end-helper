@@ -63,6 +63,11 @@ cat > "$INDEX_FILE" <<'EOF'
         color: var(--muted);
       }
 
+      .hint {
+        margin: 0 0 16px;
+        font-size: 0.95rem;
+      }
+
       table {
         width: 100%;
         border-collapse: collapse;
@@ -88,6 +93,20 @@ cat > "$INDEX_FILE" <<'EOF'
         border-bottom: none;
       }
 
+      tbody tr[data-href] {
+        cursor: pointer;
+      }
+
+      tbody tr[data-href]:hover {
+        background: #f6f9fe;
+      }
+
+      tbody tr[data-href]:focus-visible {
+        outline: 2px solid var(--link);
+        outline-offset: -2px;
+        background: #eef5ff;
+      }
+
       a {
         color: var(--link);
         text-decoration: none;
@@ -103,10 +122,11 @@ cat > "$INDEX_FILE" <<'EOF'
     <main>
       <h1>Allure reports</h1>
       <p>Published test reports available on GitHub Pages.</p>
+      <p class="hint">Select a row to open that report.</p>
       <table>
         <thead>
           <tr>
-            <th>Run</th>
+            <th>Committed</th>
             <th>Branch</th>
             <th>Commit</th>
             <th>Title</th>
@@ -118,14 +138,36 @@ EOF
 
 jq -r '
   .reports
+  | sort_by([(.commitTimestamp != null and .commitTimestamp != "" and .commitTimestamp != "unknown"), .commitTimestamp])
   | reverse[]
-  | "<tr><td><a href=\"reports/\(.runId)/index.html\">\(.runId)</a></td><td>\(.branch)</td><td><code>\(.commitSha)</code></td><td>\(.commitTitle)</td><td>\(.actor // .username // "unknown")</td></tr>"
+  | . as $report
+  | ($report.commitTimestamp // "unknown") as $timestamp
+  | ($timestamp
+      | if . == "unknown" or . == "" then "unknown"
+        else (fromdateiso8601 | gmtime | strftime("%Y-%m-%d %H:%M UTC"))
+        end) as $formattedTimestamp
+  | "<tr data-href=\"reports/\($report.runId)/index.html\" tabindex=\"0\" role=\"link\" aria-label=\"Open report for \($report.commitTitle)\"><td>\($formattedTimestamp)</td><td>\($report.branch)</td><td><code>\($report.commitSha)</code></td><td>\($report.commitTitle)</td><td>\($report.actor // $report.username // "unknown")</td></tr>"
 ' "$ALL_REPORTS_INFO" >> "$INDEX_FILE"
 
 cat >> "$INDEX_FILE" <<'EOF'
         </tbody>
       </table>
     </main>
+    <script>
+      document.querySelectorAll("tbody tr[data-href]").forEach((row) => {
+        const navigate = () => {
+          window.location.href = row.dataset.href;
+        };
+
+        row.addEventListener("click", navigate);
+        row.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            navigate();
+          }
+        });
+      });
+    </script>
   </body>
 </html>
 EOF
