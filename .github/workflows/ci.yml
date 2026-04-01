@@ -36,6 +36,8 @@ jobs:
       tests_outcome: ${{ steps.test_execution.outcome }}
     permissions:
       contents: read
+      pages: write
+      id-token: write
     env:
       ALLURE_RESULTS_DIR: target/allure-results
       ALLURE_REPORT_DIR: target/site/allure-maven-plugin
@@ -59,6 +61,8 @@ jobs:
       - name: Configure GitHub Pages
         if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
         uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - name: Restore published reports cache
         if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
@@ -104,14 +108,13 @@ jobs:
           if [ ! -d "$ALLURE_REPORT_DIR" ]; then
             echo "Allure report directory not found. Creating a dummy report."
             mkdir -p "$ALLURE_REPORT_DIR"
-            cat > "$ALLURE_REPORT_DIR/index.html" <<'EOF'
-            <html>
-              <body>
-                <h1>Allure Report</h1>
-                <p>Report generation failed. Please check the workflow logs.</p>
-              </body>
-            </html>
-            EOF
+            printf '%s\n' \
+              '<html>' \
+              '  <body>' \
+              '    <h1>Allure Report</h1>' \
+              '    <p>Report generation failed. Please check the workflow logs.</p>' \
+              '  </body>' \
+              '</html>' > "$ALLURE_REPORT_DIR/index.html"
           fi
 
       - name: Inject index backlink into Allure report
