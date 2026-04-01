@@ -1,5 +1,8 @@
 # multireports-end2end-helper
 
+[![CI](https://github.com/bengous/multireports-end2end-helper/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/bengous/multireports-end2end-helper/actions/workflows/ci.yml)
+[Reports](https://bengous.github.io/multireports-end2end-helper/)
+
 Java 21 E2E API testing framework using TestNG, RestAssured, and Allure.
 
 ## Reports
@@ -35,11 +38,11 @@ mvn allure:report
 The repository now uses GitHub Actions instead of GitLab CI.
 
 - `CI` runs on `main` pushes and pull requests and is optimized for fast validation.
-- `Publish Reports` is a manual workflow that rebuilds and deploys the full GitHub Pages report site.
+- `Publish Reports` runs manually and once a week on Monday at 07:00 UTC to rebuild and deploy the full GitHub Pages report site.
 - The deployed site keeps published reports in `public/reports/<run-id>` and exposes an index at the site root.
 - Previous published reports are restored from an Actions cache so the index and report history survive across deployments without a dedicated `pages` branch.
 - The repository temporarily keeps a legacy report bootstrap step, but it now runs only in the manual publish workflow to republish historical pre-`main` reports from preserved GitHub Actions artifacts.
-- GitHub Pages is refreshed by the manual publish workflow, not by every push to `main`.
+- GitHub Pages is refreshed by the scheduled or manual publish workflow, not by every push to `main`.
 
 ### Publish workflow inputs
 
@@ -52,8 +55,16 @@ The `Publish Reports` workflow supports:
 
 ## Repository notes
 
-- The fast `CI` workflow keeps artifact upload enabled by default via the top-level `UPLOAD_TEST_ARTIFACTS` variable in [.github/workflows/ci.yml](/home/b3ngous/projects/multireports-end2end-helper/.github/workflows/ci.yml).
+- The fast `CI` workflow disables artifact upload by default via the top-level `UPLOAD_TEST_ARTIFACTS` variable in [.github/workflows/ci.yml](/home/b3ngous/projects/multireports-end2end-helper/.github/workflows/ci.yml). Set it back to `"true"` if you need artifacts on every push.
 - `scripts/override_report_files.sh` injects the "BACK TO INDEX" link into the generated Allure HTML.
 - `scripts/generate_report_specifics.sh` writes deployment metadata into `public/all_reports_info.json`.
 - `scripts/backup_allure_history.sh` restores the latest published Allure `history/` directory before generating a new report.
 - `scripts/bootstrap_legacy_reports.sh` is a temporary recovery mechanism that restores known legacy `dev` reports into the `main`-based Pages site.
+
+## Operator flow
+
+Use the repo this way:
+
+1. Push to `main` to run fast validation in `CI`.
+2. Use `Publish Reports` when you want GitHub Pages refreshed immediately.
+3. Rely on the weekly scheduled `Publish Reports` run for routine report refresh.
