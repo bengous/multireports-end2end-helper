@@ -2,7 +2,7 @@ name: CI
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-  UPLOAD_TEST_ARTIFACTS: "true"
+  UPLOAD_TEST_ARTIFACTS: "false"
 
 on:
   push:
