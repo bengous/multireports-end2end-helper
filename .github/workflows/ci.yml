@@ -33,6 +33,7 @@ jobs:
     outputs:
       tests_outcome: ${{ steps.test_execution.outcome }}
     permissions:
+      actions: read
       contents: read
       pages: write
       id-token: write
@@ -73,6 +74,15 @@ jobs:
             pages-site-dev-
             pages-site-main-
             pages-site-
+
+      - name: Bootstrap legacy reports
+        if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO_SLUG: ${{ github.repository }}
+        run: |
+          chmod +x ./scripts/bootstrap_legacy_reports.sh
+          ./scripts/bootstrap_legacy_reports.sh
 
       - name: Restore Allure history
         if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
