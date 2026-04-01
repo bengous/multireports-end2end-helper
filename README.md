@@ -28,7 +28,7 @@ mvn allure:report
 
 The repository now uses GitHub Actions instead of GitLab CI.
 
-- CI runs on `dev` and `master` pushes and pull requests.
+- CI runs on `main` pushes and pull requests.
 - GitHub Pages deployment is handled by the workflow on the repository default branch.
 - The deployed site keeps published reports in `public/reports/<run-id>` and exposes an index at the site root.
 - Previous published reports are restored from an Actions cache so the index and report history survive across deployments without a dedicated `pages` branch.
