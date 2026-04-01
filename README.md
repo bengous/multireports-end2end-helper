@@ -32,6 +32,7 @@ The repository now uses GitHub Actions instead of GitLab CI.
 - GitHub Pages deployment is handled by the workflow on the repository default branch.
 - The deployed site keeps published reports in `public/reports/<run-id>` and exposes an index at the site root.
 - Previous published reports are restored from an Actions cache so the index and report history survive across deployments without a dedicated `pages` branch.
+- The repository temporarily keeps a legacy report bootstrap step to republish historical pre-`main` reports from preserved GitHub Actions artifacts.
 
 ### Workflow inputs
 
@@ -46,3 +47,4 @@ The manual workflow supports:
 - `scripts/override_report_files.sh` injects the "BACK TO INDEX" link into the generated Allure HTML.
 - `scripts/generate_report_specifics.sh` writes deployment metadata into `public/all_reports_info.json`.
 - `scripts/backup_allure_history.sh` restores the latest published Allure `history/` directory before generating a new report.
+- `scripts/bootstrap_legacy_reports.sh` is a temporary recovery mechanism that restores known legacy `dev` reports into the `main`-based Pages site.
