@@ -60,7 +60,7 @@ new StepChain<>(initialContext)
 
 ### CI/CD
 
-GitHub Actions runs CI on `dev` and `master`, generates Allure reports, and deploys the default branch site to GitHub Pages.
+GitHub Actions runs CI on `main`, generates Allure reports, and deploys the default branch site to GitHub Pages.
 
 Published report metadata is tracked in `public/all_reports_info.json`.
 
