@@ -59,7 +59,7 @@ The `Publish Reports` workflow supports:
 <details>
 <summary>Repository notes</summary>
 
-- The fast `CI` workflow disables artifact upload by default via the top-level `UPLOAD_TEST_ARTIFACTS` variable in [.github/workflows/ci.yml](/home/b3ngous/projects/multireports-end2end-helper/.github/workflows/ci.yml). Set it back to `"true"` if you need artifacts on every push.
+- The fast `CI` workflow disables artifact upload by default via the top-level `UPLOAD_TEST_ARTIFACTS` variable in [.github/workflows/ci.yml](.github/workflows/ci.yml). Set it back to `"true"` if you need artifacts on every push.
 - `scripts/override_report_files.sh` injects the "BACK TO INDEX" link into the generated Allure HTML.
 - `scripts/generate_report_specifics.sh` writes deployment metadata into `public/all_reports_info.json`.
 - `scripts/backup_allure_history.sh` restores the latest published Allure `history/` directory before generating a new report.
